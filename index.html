@@ -115,13 +115,22 @@
 
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
+                const videoId = docSnap.id;
+
                 const li = document.createElement("li");
 
+                // 🔥 サムネイル
+                const img = document.createElement("img");
+                img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                img.style.width = "120px";
+                img.style.display = "block";
+
+                // タイトル編集用 input
                 const input = document.createElement("input");
                 input.value = data.title;
 
                 input.onchange = async () => {
-                    await updateDoc(doc(collectionRef, docSnap.id), {
+                    await updateDoc(doc(collectionRef, videoId), {
                         title: input.value
                     });
                 };
@@ -129,24 +138,17 @@
                 const delBtn = document.createElement("button");
                 delBtn.textContent = "削除";
                 delBtn.onclick = async () => {
-                    await deleteDoc(doc(collectionRef, docSnap.id));
+                    await deleteDoc(doc(collectionRef, videoId));
                     loadItems();
                 };
 
-                const upBtn = document.createElement("button");
-                upBtn.textContent = "↑";
-                upBtn.onclick = () => moveItem(docSnap.id, -1);
-
-                const downBtn = document.createElement("button");
-                downBtn.textContent = "↓";
-                downBtn.onclick = () => moveItem(docSnap.id, 1);
-
+                li.appendChild(img);
                 li.appendChild(input);
-                li.appendChild(upBtn);
-                li.appendChild(downBtn);
                 li.appendChild(delBtn);
+
                 listEl.appendChild(li);
             });
+
         }
 
         addBtn.onclick = async () => {
