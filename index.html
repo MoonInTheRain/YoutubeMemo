@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Youtube Memo App</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        button {
+            margin-left: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Youtube Memo App</h2>
+
+    <button id="loginBtn">Googleログイン</button>
+    <button id="logoutBtn" style="display:none;">ログアウト</button>
+
+    <div id="app" style="display:none;">
+        <input id="newTitle" placeholder="タイトル" />
+        <button id="addBtn">追加</button>
+        <ul id="list"></ul>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+        import {
+            getAuth,
+            signInWithPopup,
+            GoogleAuthProvider,
+            signOut,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            getDocs,
+            deleteDoc,
+            doc,
+            updateDoc,
+            query,
+            orderBy,
+            serverTimestamp,
+            setDoc
+        } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDRAF5FN2El8iGFWUz5ZF_pKPHr0NArJfI",
+            authDomain: "jsonserver-f6883.firebaseapp.com",
+            projectId: "jsonserver-f6883",
+            storageBucket: "jsonserver-f6883.firebasestorage.app",
+            messagingSenderId: "859092414564",
+            appId: "1:859092414564:web:a350d01a5db126e324ef71"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const loginBtn = document.getElementById("loginBtn");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const appDiv = document.getElementById("app");
+        const listEl = document.getElementById("list");
+        const addBtn = document.getElementById("addBtn");
+        const newTitle = document.getElementById("newTitle");
+
+        let uid = null;
+        let collectionRef = null;
+
+        loginBtn.onclick = async () => {
+            const provider = new GoogleAuthProvider();
+            await signInWithPopup(auth, provider);
+        };
+
+        logoutBtn.onclick = async () => {
+            await signOut(auth);
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                uid = user.uid;
+                loginBtn.style.display = "none";
+                logoutBtn.style.display = "inline";
+                appDiv.style.display = "block";
+
+                collectionRef = collection(db, `apps/youtubeMemo/users/${uid}/items`);
+                loadItems();
+            } else {
+                loginBtn.style.display = "inline";
+                logoutBtn.style.display = "none";
+                appDiv.style.display = "none";
+                listEl.innerHTML = "";
+            }
+        });
+
+        async function loadItems() {
+            listEl.innerHTML = "";
+            const q = query(collectionRef, orderBy("order"));
+            const snapshot = await getDocs(q);
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const li = document.createElement("li");
+
+                const input = document.createElement("input");
+                input.value = data.title;
+
+                input.onchange = async () => {
+                    await updateDoc(doc(collectionRef, docSnap.id), {
+                        title: input.value
+                    });
+                };
+
+                const delBtn = document.createElement("button");
+                delBtn.textContent = "削除";
+                delBtn.onclick = async () => {
+                    await deleteDoc(doc(collectionRef, docSnap.id));
+                    loadItems();
+                };
+
+                const upBtn = document.createElement("button");
+                upBtn.textContent = "↑";
+                upBtn.onclick = () => moveItem(docSnap.id, -1);
+
+                const downBtn = document.createElement("button");
+                downBtn.textContent = "↓";
+                downBtn.onclick = () => moveItem(docSnap.id, 1);
+
+                li.appendChild(input);
+                li.appendChild(upBtn);
+                li.appendChild(downBtn);
+                li.appendChild(delBtn);
+                listEl.appendChild(li);
+            });
+        }
+
+        addBtn.onclick = async () => {
+            const title = newTitle.value.trim();
+            if (!title) return;
+
+            const snapshot = await getDocs(collectionRef);
+            const order = snapshot.size + 1;
+
+            await addDoc(collectionRef, {
+                title,
+                order,
+                createdAt: serverTimestamp()
+            });
+
+            newTitle.value = "";
+            loadItems();
+        };
+
+        async function moveItem(id, direction) {
+            const q = query(collectionRef, orderBy("order"));
+            const snapshot = await getDocs(q);
+            const docs = snapshot.docs;
+
+            const index = docs.findIndex(d => d.id === id);
+            const swapIndex = index + direction;
+
+            if (swapIndex < 0 || swapIndex >= docs.length) return;
+
+            const current = docs[index];
+            const target = docs[swapIndex];
+
+            await updateDoc(doc(collectionRef, current.id), {
+                order: target.data().order
+            });
+
+            await updateDoc(doc(collectionRef, target.id), {
+                order: current.data().order
+            });
+
+            loadItems();
+        }
+    </script>
+
+</body>
+
+</html>
