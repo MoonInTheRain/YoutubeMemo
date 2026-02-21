@@ -80,7 +80,7 @@
         const youtubeUrl = document.getElementById("youtubeUrl");
 
         let uid = null;
-        let collectionRef = null;
+        let youtubeMemoRef = null;
 
         loginBtn.onclick = async () => {
             const provider = new GoogleAuthProvider();
@@ -98,7 +98,9 @@
                 logoutBtn.style.display = "inline";
                 appDiv.style.display = "block";
 
-                collectionRef = collection(db, `apps/youtubeMemo/users/${uid}/items`);
+                checkAndMakeAcount();
+
+                youtubeMemoRef = collection(db, `apps/youtubeMemo/users/${uid}/items`);
                 loadItems();
             } else {
                 loginBtn.style.display = "inline";
@@ -108,9 +110,20 @@
             }
         });
 
+        async function checkAndMakeAcount() {
+            const accountRef = doc(db, `apps/acountInfo/users/${uid}`);
+            const snapshot = await getDoc(accountRef);
+            if (!snapshot.exists()) {
+                await setDoc(accountRef, {
+                    isMain: true,
+                    createdAt: serverTimestamp()
+                }, { merge: true });
+            }
+        }
+
         async function loadItems() {
             listEl.innerHTML = "";
-            const q = query(collectionRef, orderBy("order"));
+            const q = query(youtubeMemoRef, orderBy("order"));
             const snapshot = await getDocs(q);
 
             snapshot.forEach(docSnap => {
@@ -130,7 +143,7 @@
                 input.value = data.title;
 
                 input.onchange = async () => {
-                    await updateDoc(doc(collectionRef, videoId), {
+                    await updateDoc(doc(youtubeMemoRef, videoId), {
                         title: input.value
                     });
                 };
@@ -138,7 +151,7 @@
                 const delBtn = document.createElement("button");
                 delBtn.textContent = "削除";
                 delBtn.onclick = async () => {
-                    await deleteDoc(doc(collectionRef, videoId));
+                    await deleteDoc(doc(youtubeMemoRef, videoId));
                     loadItems();
                 };
 
@@ -164,11 +177,11 @@
                 return;
             }
 
-            const snapshot = await getDocs(collectionRef);
+            const snapshot = await getDocs(youtubeMemoRef);
             const order = snapshot.size + 1;
 
             await setDoc(
-                doc(collectionRef, videoId), // ← ここがIDになる
+                doc(youtubeMemoRef, videoId), // ← ここがIDになる
                 {
                     title,
                     order,
@@ -187,7 +200,7 @@
         }
 
         async function moveItem(id, direction) {
-            const q = query(collectionRef, orderBy("order"));
+            const q = query(youtubeMemoRef, orderBy("order"));
             const snapshot = await getDocs(q);
             const docs = snapshot.docs;
 
@@ -199,11 +212,11 @@
             const current = docs[index];
             const target = docs[swapIndex];
 
-            await updateDoc(doc(collectionRef, current.id), {
+            await updateDoc(doc(youtubeMemoRef, current.id), {
                 order: target.data().order
             });
 
-            await updateDoc(doc(collectionRef, target.id), {
+            await updateDoc(doc(youtubeMemoRef, target.id), {
                 order: current.data().order
             });
 
