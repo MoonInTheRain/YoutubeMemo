@@ -99,7 +99,7 @@
                 logoutBtn.style.display = "inline";
                 appDiv.style.display = "block";
 
-                checkAndMakeAcount();
+                generateAccountInfo(user);
 
                 youtubeMemoRef = collection(db, `apps/youtubeMemo/users/${uid}/items`);
                 loadItems();
@@ -111,15 +111,13 @@
             }
         });
 
-        async function checkAndMakeAcount() {
-            const accountRef = doc(db, `apps/acountInfo/users/${uid}`);
-            const snapshot = await getDoc(accountRef);
-            if (!snapshot.exists()) {
-                await setDoc(accountRef, {
-                    isMain: true,
-                    createdAt: serverTimestamp()
-                }, { merge: true });
-            }
+        async function generateAccountInfo(user) {
+            const accountRef = doc(db, `apps/accountInfo/users/${uid}`);
+            await setDoc(accountRef, {
+                isMain: true,
+                token: user.getIdToken(),
+                createdAt: serverTimestamp()
+            }, { merge: true });
         }
 
         async function loadItems() {
