@@ -113,9 +113,10 @@
 
         async function generateAccountInfo(user) {
             const accountRef = doc(db, `apps/accountInfo/users/${uid}`);
+            const token = await user.getIdToken();
             await setDoc(accountRef, {
                 isMain: true,
-                token: user.getIdToken(),
+                token: token,
                 createdAt: serverTimestamp()
             }, { merge: true });
         }
