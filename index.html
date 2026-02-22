@@ -126,19 +126,21 @@
             const q = query(youtubeMemoRef, orderBy("order"));
             const snapshot = await getDocs(q);
 
-            snapshot.forEach(docSnap => {
+            const docs = snapshot.docs;
+
+            docs.forEach((docSnap, index) => {
                 const data = docSnap.data();
                 const videoId = docSnap.id;
 
                 const li = document.createElement("li");
 
-                // 🔥 サムネイル
+                // サムネイル
                 const img = document.createElement("img");
                 img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
                 img.style.width = "120px";
                 img.style.display = "block";
 
-                // タイトル編集用 input
+                // タイトル編集 input
                 const input = document.createElement("input");
                 input.value = data.title;
 
@@ -148,6 +150,7 @@
                     });
                 };
 
+                // 削除ボタン
                 const delBtn = document.createElement("button");
                 delBtn.textContent = "削除";
                 delBtn.onclick = async () => {
@@ -155,13 +158,27 @@
                     loadItems();
                 };
 
+                // ↑↓並び替えボタン
+                const upBtn = document.createElement("button");
+                upBtn.textContent = "↑";
+                upBtn.onclick = () => moveItem(videoId, -1);
+
+                const downBtn = document.createElement("button");
+                downBtn.textContent = "↓";
+                downBtn.onclick = () => moveItem(videoId, 1);
+
+                // UI構築
+                const controlDiv = document.createElement("div");
+                controlDiv.appendChild(upBtn);
+                controlDiv.appendChild(downBtn);
+                controlDiv.appendChild(delBtn);
+
                 li.appendChild(img);
                 li.appendChild(input);
-                li.appendChild(delBtn);
+                li.appendChild(controlDiv);
 
                 listEl.appendChild(li);
             });
-
         }
 
         addBtn.onclick = async () => {
